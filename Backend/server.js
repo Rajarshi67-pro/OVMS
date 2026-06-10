@@ -18,6 +18,8 @@ app.use('/api/admin', require('./routes/admin'));
 
 // basic root
 app.get('/', (req, res) => res.send('OVMS backend running'));
+app.get('/api', (req, res) => res.send('OVMS API running'));
+app.get('/api/', (req, res) => res.send('OVMS API running'));
 
 // 404
 app.use((req, res) => res.status(404).json({ message: 'Not Found' }));
