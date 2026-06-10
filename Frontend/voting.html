@@ -1,50 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="utf-8">
-    <title>Vote — Online Voting Management System</title>
+    <title>Vote — Bharat Vote 🇮🇳</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="voting.css">
+    
+    <!-- Modern Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Enhanced CSS -->
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-    <div class="page">
-        <header class="top">
-            <h1>Cast Your Vote</h1>
-            <div class="user-area">
-                <a class="back" href="index.html">Home</a>
+    <!-- Global Navbar (Glassmorphism) -->
+    <nav class="navbar" id="mainNav">
+        <div class="nav-container">
+            <div class="nav-brand" onclick="window.location.href='index.html'">
+                <span class="brand-icon">🇮🇳</span>
+                <span class="brand-text">Bharat Vote</span>
             </div>
-        </header>
+            
+            <div class="nav-links" id="navLinks">
+                <!-- Status Indicators -->
+                <div class="nav-status">
+                    <span id="networkStatus" class="status-badge"></span>
+                </div>
+                
+                <!-- Dynamic Auth Buttons -->
+                <div id="navAuthArea">
+                    <button class="btn btn-outline" onclick="window.location.href='index.html'">Back to Home</button>
+                </div>
+            </div>
+        </div>
+    </nav>
 
-        <main class="content">
-            <div id="networkStatus" class="network"></div>
+    <main class="app-main fade" id="appMain">
+        <div class="view-section fade-in">
+            <div class="dashboard-header">
+                <h2>Cast Your Vote</h2>
+                <p class="muted">Review the candidates carefully.</p>
+            </div>
 
-            <section class="controls">
-                <button class="btn primary" onclick="loadElections()">Show Active Elections</button>
-            </section>
+            <!-- Elections Grid -->
+            <div id="elections" class="elections-grid mt-4">
+                <!-- Loading indicator -> Will be replaced by script.js -->
+                <p>Loading election data...</p>
+            </div>
+        </div>
+    </main>
 
-            <section id="elections" class="elections">
-                <!-- elections will be rendered here by script.js -->
-            </section>
-        </main>
-
-        <div id="toast" class="toast" aria-live="polite"></div>
-    </div>
+    <!-- Toast container for notifications -->
+    <div id="ovms-toast-container"></div>
 
     <script type="module" src="script.js"></script>
     <script>
-        // Voting page is public: any eligible user should be able to view and vote.
-        // Admin-only controls remain hidden unless the user is admin (handled by script.js).
+        // Fade in
+        document.addEventListener("DOMContentLoaded", () => {
+            document.body.classList.add("page-loaded");
+            document.getElementById('appMain').style.opacity = 1;
+        });
 
-        // connect toast to vote events emitted by script.js
+        // Toast logic to match SPA design
         function showToast(message, type = 'success') {
-            const t = document.getElementById('toast');
+            const container = document.getElementById('ovms-toast-container');
+            if (!container) return;
+            const t = document.createElement('div');
+            t.className = `ovms-toast ${type}`;
             t.textContent = message;
-            t.className = 'toast show ' + type;
-            clearTimeout(t._hideTimer);
-            t._hideTimer = setTimeout(() => { t.className = 'toast'; }, 3500);
+            container.appendChild(t);
+            setTimeout(() => {
+                t.style.opacity = '0';
+                t.style.transform = 'translateY(-10px)';
+                setTimeout(() => t.remove(), 300);
+            }, 3000);
         }
 
         window.addEventListener('vote:success', (e) => {
@@ -57,39 +86,30 @@
             showToast(msg, 'error');
         });
 
-        // mirror network status from script.js
+        // network status mirror
         function updateNetworkMirror() {
             const el = document.getElementById('networkStatus');
-            el.textContent = navigator.onLine ? 'Online' : 'Offline — demo mode';
-            el.className = navigator.onLine ? 'network online' : 'network offline';
+            el.textContent = navigator.onLine ? 'Online ✔' : 'Offline — Demo';
+            el.className = navigator.onLine ? 'status-badge online' : 'status-badge offline';
         }
         window.addEventListener('online', updateNetworkMirror);
         window.addEventListener('offline', updateNetworkMirror);
         updateNetworkMirror();
 
-        // show voter name if available
-        const nameSpan = document.getElementById('voterNameHeader');
-        // script.js will update #voterName in main page; mirror from localUser if present
-        const lu = JSON.parse(localStorage.getItem('localUser') || 'null');
-        if (lu && lu.name) nameSpan.textContent = lu.name;
-        // also listen for auth state change if script.js emits 'auth:changed' (not currently implemented)
-
-        // If an electionId param is present, load that single election; otherwise leave control to user
+        // If an electionId param is present, load that single election
         const params = new URLSearchParams(location.search);
         const electionId = params.get('electionId');
         function whenAvailable(name, cb) {
             if (window[name]) return cb();
             const t = setInterval(() => { if (window[name]) { clearInterval(t); cb(); } }, 50);
-            // timeout after a few seconds
             setTimeout(() => clearInterval(t), 5000);
         }
         if (electionId) {
             whenAvailable('loadElectionById', () => { try { window.loadElectionById(electionId); } catch (e) { console.error(e); } });
         } else {
-            // if no param, optionally auto-load all elections
-            whenAvailable('loadElections', () => { /* leave it to button or auto-load if desired */ });
+            // fallback
+            whenAvailable('loadElections', () => { try { window.loadElections(); } catch (e) {} });
         }
     </script>
 </body>
-
 </html>
