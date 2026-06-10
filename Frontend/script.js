@@ -468,32 +468,10 @@ function updateAdminButtonFromStorage() {
 }
 
 function showRoleBadge(role) {
-    try {
-        let badge = document.getElementById('ovmsRoleBadge');
-        if (!badge) {
-            badge = document.createElement('div');
-            badge.id = 'ovmsRoleBadge';
-            badge.style.position = 'fixed';
-            badge.style.right = '20px';
-            badge.style.top = '20px';
-            badge.style.padding = '8px 12px';
-            badge.style.borderRadius = '6px';
-            badge.style.background = 'var(--saffron)';
-            badge.style.color = '#fff';
-            badge.style.fontSize = '0.85em';
-            badge.style.fontWeight = '600';
-            badge.style.boxShadow = 'var(--shadow)';
-            badge.style.zIndex = '10000';
-            document.body.appendChild(badge);
-        }
-        badge.textContent = 'Role: ' + (role || 'user');
-        badge.style.display = 'block';
-        console.log('[showRoleBadge] Role badge displayed: ' + role);
-    } catch (e) { console.error('[showRoleBadge] Error:', e); }
+    // Disabled intentionally to prevent UI overlap. The role is implied by the navbar buttons.
 }
 
 function hideRoleBadge() {
-    try { const badge = document.getElementById('ovmsRoleBadge'); if (badge) badge.style.display = 'none'; } catch (e) { /* ignore */ }
 }
 
 // Centralized function to update admin button visibility and styling
@@ -980,14 +958,14 @@ function renderElectionCard(eid, e, showViewButton = false) {
             html += `<div class="election-id-admin"><strong>ID:</strong> ${eid}</div>`;
             
             html += `<div class="admin-controls">
-                        <button class="btn" onclick="editElection('${eid}')">Edit</button>
-                        <button class="btn" onclick="toggleElectionActive('${eid}')">Toggle Active</button>
-                        <button class="btn" onclick="showResults('${eid}')">Results</button>
-                        <button class="btn" onclick="deleteElection('${eid}')">Delete</button>
+                        <button class="btn btn-outline" onclick="editElection('${eid}')">Edit</button>
+                        <button class="btn btn-outline" onclick="toggleElectionActive('${eid}')">Toggle Active</button>
+                        <button class="btn btn-outline" onclick="showResults('${eid}')">Results</button>
+                        <button class="btn btn-danger" style="padding:6px 12px;font-size:0.8rem;" onclick="deleteElection('${eid}')">Delete</button>
                      </div>`;
         }
     } catch (err) { console.warn('Admin control render error', err); }
-    html += `<div id="candidates-${eid}">`;
+    html += `<div class="candidate-list" id="candidates-${eid}">`;
     if (candidates.length === 0) html += '<p>No candidates.</p>';
     else {
         candidates.forEach(c => {
@@ -1008,12 +986,12 @@ function renderElectionCard(eid, e, showViewButton = false) {
 
             const onclick = isBackendElection ? `voteBackend('${eid}','${cid}')` : `vote('${eid}','${cid}')`;
             html += `
-                        <div class="candidate">
-                            <div>
-                                <span>${c.name} <small id="count-${eid}-${cid}" style="margin-left:8px;color:#333;font-weight:600;"></small></span>
-                                <div class="meta">${party}</div>
+                        <div class="candidate-item">
+                            <div class="candidate-info">
+                                <span class="candidate-name">${c.name} <small id="count-${eid}-${cid}" style="margin-left:6px;color:var(--deepgreen);font-weight:700;"></small></span>
+                                <div class="candidate-party">${party}</div>
                             </div>
-                            ${isAdmin ? '<button disabled title="Admins cannot vote">Admin</button>' : `<button onclick="${onclick}">Vote</button>`}
+                            ${isAdmin ? '<button class="btn btn-outline" disabled title="Admins cannot vote" style="font-size:0.8rem;padding:6px 12px;">Admin</button>' : `<button class="btn btn-primary" style="font-size:0.8rem;padding:6px 12px;" onclick="${onclick}">Vote</button>`}
                         </div>
                     `;
         });

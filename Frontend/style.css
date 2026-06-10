@@ -341,8 +341,24 @@
        border: 1px solid #e2e8f0;
    }
    .candidate-info { display: flex; flex-direction: column; }
-   .candidate-name { font-weight: 600; color: var(--text-primary); }
-   .candidate-party { font-size: 0.8rem; color: var(--text-muted); }
+    .candidate-name { font-weight: 600; color: var(--text-primary); }
+    .candidate-party { font-size: 0.8rem; color: var(--text-muted); }
+
+    .election-id-admin {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-bottom: 12px;
+        word-break: break-all;
+    }
+    
+    .admin-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
    
    /* ======================================================
       ADMIN DASHBOARD LAYOUT
