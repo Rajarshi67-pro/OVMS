@@ -100,6 +100,6 @@ exports.firebaseLogin = async (req, res) => {
         res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
     } catch (err) {
         console.error('Firebase login failed', err);
-        res.status(401).json({ message: 'Invalid Firebase ID token' });
+        res.status(401).json({ message: 'Firebase login failed: ' + (err.message || err) });
     }
 };

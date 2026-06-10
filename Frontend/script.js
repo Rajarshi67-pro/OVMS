@@ -746,18 +746,18 @@ async function tryExchangeFirebaseToken(user) {
                 return true;
             } else {
                 console.warn('Backend firebase exchange failed', data);
-                updateBackendStatus(false);
+                updateBackendStatus(false, data.message || 'token exchange failed');
             }
         } catch (err) {
             console.warn('Backend token exchange network error', err);
-            updateBackendStatus(false);
+            updateBackendStatus(false, err.message || 'network error');
         }
     } catch (err) { console.warn('Failed to get ID token', err); }
     return false;
 }
 
 // update small backend status UI (optional param ok to display explicit failure)
-function updateBackendStatus(ok = undefined) {
+function updateBackendStatus(ok = undefined, errMsg = null) {
     const el = document.getElementById('backendStatus');
     if (!el) return;
     // if ok undefined, determine from network + token presence
@@ -769,7 +769,7 @@ function updateBackendStatus(ok = undefined) {
         fetch(`${API_BASE}/`).then(r => { if (r.ok) { el.textContent = 'Backend: reachable (no token)'; el.style.color = '#2a7a2a'; } else { el.textContent = 'Backend: reachable but returned error'; el.style.color = '#a00'; } }).catch(() => { el.textContent = 'Backend: unreachable'; el.style.color = '#a00'; });
         return;
     }
-    el.textContent = ok ? 'Backend: connected' : 'Backend: unreachable or token exchange failed';
+    el.textContent = ok ? 'Backend: connected' : ('Backend: ' + (errMsg || 'unreachable or token exchange failed'));
     el.style.color = ok ? '#2a7a2a' : '#a00';
 }
 
