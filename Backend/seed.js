@@ -18,7 +18,7 @@ async function seed() {
 
     // create admin if not exists
     // seed admin with requested email and password
-    const adminEmail = 'rajarshighs1@gmail.com';
+    const adminEmail = '123@admin.com';
     let admin = await User.findOne({ email: adminEmail });
     if (!admin) {
         const hashed = await bcrypt.hash('123456', 10);

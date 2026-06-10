@@ -5,76 +5,204 @@
     <meta charset="UTF-8">
     <title>Bharat Vote 🇮🇳</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
-
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-
-    <!-- Your enhanced CSS -->
+    
+    <!-- Modern Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Enhanced CSS -->
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-    <div class="container fade">
+    <!-- Global Navbar (Glassmorphism) -->
+    <nav class="navbar" id="mainNav">
+        <div class="nav-container">
+            <div class="nav-brand" onclick="goHome()">
+                <span class="brand-icon">🇮🇳</span>
+                <span class="brand-text">Bharat Vote</span>
+            </div>
+            
+            <div class="nav-links" id="navLinks">
+                <!-- Status Indicators injected here by JS -->
+                <div class="nav-status">
+                    <span id="networkStatus" class="status-badge"></span>
+                    <span id="backendStatus" class="status-badge"></span>
+                </div>
+                
+                <!-- Dynamic Auth Buttons -->
+                <div id="navAuthArea">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+    </nav>
 
-        <h1>Bharat Vote 🇮🇳</h1>
-
-        <!-- Status labels -->
-        <div id="networkStatus"></div>
-        <div id="backendStatus"></div>
-
+    <!-- Main Content Area -->
+    <main class="app-main fade" id="appMain">
+        
         <!-- AUTH SECTION -->
-        <div id="auth-section" class="fade">
-            <h2>Login</h2>
+        <div id="auth-section" class="view-section active fade-in">
+            <div class="glass-card auth-card">
+                <div class="auth-header">
+                    <h2>Welcome Back</h2>
+                    <p class="muted">Sign in to cast your vote securely.</p>
+                </div>
 
-            <input type="email" id="loginEmail" placeholder="Email">
-            <input type="password" id="loginPassword" placeholder="Password">
+                <div class="form-group">
+                    <input type="email" id="loginEmail" placeholder="Email Address">
+                </div>
+                <div class="form-group">
+                    <input type="password" id="loginPassword" placeholder="Password">
+                </div>
 
-            <button class="primary-action" onclick="login()">Login</button>
+                <button class="btn btn-primary full-width" onclick="login()">Login</button>
 
-            <button id="googleSignInBtn" onclick="googleSignIn()">
-                <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="20"> Sign in with Google
-            </button>
+                <div class="divider"><span>OR</span></div>
 
-            <p style="margin-top: 10px; font-weight: 600;">Don't have an account?</p>
+                <button id="googleSignInBtn" class="btn btn-outline full-width" onclick="googleSignIn()">
+                    <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="20" alt="Google"> 
+                    Continue with Google
+                </button>
 
-            <input type="text" id="regName" placeholder="Full Name">
-            <input type="email" id="regEmail" placeholder="Email">
-            <input type="password" id="regPassword" placeholder="Password">
-
-            <button class="primary-action" onclick="register()">Register</button>
+                <div class="auth-footer">
+                    <p>Don't have an account?</p>
+                </div>
+                
+                <div class="register-group">
+                    <input type="text" id="regName" placeholder="Full Name">
+                    <input type="email" id="regEmail" placeholder="Email">
+                    <input type="password" id="regPassword" placeholder="Password">
+                    <button class="btn btn-secondary full-width" onclick="register()">Create Account</button>
+                </div>
+            </div>
         </div>
 
-        <!-- VOTER SECTION -->
-        <div id="voter-section" class="fade" style="display:none;">
-            <h2>
-                Welcome, <span id="voterName"></span> 👋
-            </h2>
-
-            <div style="margin-top: 10px;">
-                <button id="adminBtn" onclick="goAdmin()" class="admin-panel-btn primary-action">
-                    Admin Dashboard
-                </button>
-        
+        <!-- VOTER DASHBOARD -->
+        <div id="voter-section" class="view-section fade-in" style="display:none;">
+            <div class="dashboard-header">
+                <h2>Welcome, <span id="voterName" class="highlight-text"></span> 👋</h2>
+                <p class="muted">Participate in active elections below.</p>
+            </div>
+            
+            <div class="dashboard-actions">
+                <button class="btn btn-primary" onclick="loadElections()">Refresh Elections</button>
             </div>
 
-            <button class="primary-action" onclick="loadElections()">Show Active Elections</button>
-
-            <div id="elections"></div>
-
-            <button class="admin-btn" onclick="logout()">Logout</button>
+            <!-- Elections Grid -->
+            <div id="elections" class="elections-grid">
+                <!-- Populated via JS -->
+            </div>
         </div>
 
-    </div>
+        <!-- ADMIN DASHBOARD (Moved from admin.html) -->
+        <div id="admin-section" class="view-section fade-in" style="display:none;">
+            <div class="admin-dashboard-layout">
+                <!-- Sidebar -->
+                <aside class="admin-sidebar glass-panel">
+                    <h3>Admin Menu</h3>
+                    <nav class="admin-nav">
+                        <a href="#" onclick="showAdminTab('manageElections')" class="admin-tab active" data-tab="manageElections">Elections</a>
+                        <a href="#" onclick="showAdminTab('addCandidate')" class="admin-tab" data-tab="addCandidate">Candidates</a>
+                        <a href="#" onclick="showAdminTab('analytics')" class="admin-tab" data-tab="analytics">Analytics</a>
+                        <a href="#" onclick="showAdminTab('manageVoters')" class="admin-tab" data-tab="manageVoters">Voters</a>
+                    </nav>
+                </aside>
+
+                <!-- Main Content -->
+                <div class="admin-content glass-panel">
+                    
+                    <!-- Tab: Manage Elections -->
+                    <div id="tab-manageElections" class="admin-tab-content active">
+                        <div class="section-header">
+                            <h2>Manage Elections</h2>
+                        </div>
+                        
+                        <div class="card form-card">
+                            <h3>Create New Election</h3>
+                            <div class="form-grid">
+                                <input id="title" class="input-field" placeholder="Election Title">
+                                <input id="desc" class="input-field span-2" placeholder="Description">
+                                <label class="input-label">Start Date: <input id="start" type="date" class="input-field"></label>
+                                <label class="input-label">End Date: <input id="end" type="date" class="input-field"></label>
+                            </div>
+                            <button class="btn btn-primary mt-3" onclick="createElection()">Create Election</button>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <hr class="subtle-hr">
+                            <h3>Active Elections Overview</h3>
+                            <div class="quick-delete-bar">
+                                <input id="deleteElectionId" class="input-field small-input" placeholder="Election ID to Delete">
+                                <button class="btn btn-danger" onclick="deleteElectionById()">Delete</button>
+                            </div>
+                            <div id="adminElectionsList" class="elections-grid mt-3"></div>
+                        </div>
+                    </div>
+
+                    <!-- Tab: Add Candidate -->
+                    <div id="tab-addCandidate" class="admin-tab-content" style="display:none;">
+                        <h2>Add Candidate</h2>
+                        <div class="card form-card mt-3">
+                            <div class="form-grid">
+                                <input id="elId" class="input-field span-2" placeholder="Election ID">
+                                <input id="cName" class="input-field" placeholder="Candidate Name">
+                                <input id="party" class="input-field" placeholder="Party Affiliation">
+                            </div>
+                            <button class="btn btn-primary mt-3" onclick="addCandidate()">Add Candidate</button>
+                        </div>
+                    </div>
+
+                    <!-- Tab: Analytics -->
+                    <div id="tab-analytics" class="admin-tab-content" style="display:none;">
+                        <div class="section-header">
+                            <h2>System Analytics</h2>
+                            <button class="btn btn-secondary" onclick="loadAnalytics()">Refresh Stats</button>
+                        </div>
+                        <div id="analyticsBox" class="analytics-grid mt-3">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Tab: Manage Voters -->
+                    <div id="tab-manageVoters" class="admin-tab-content" style="display:none;">
+                        <div class="section-header">
+                            <h2>Registered Voters</h2>
+                            <button class="btn btn-secondary" onclick="loadVotersPaginated(1)">Load Data</button>
+                        </div>
+                        <div id="votersBox" class="voters-list mt-3">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </main>
 
     <!-- Main App Script -->
     <script type="module" src="script.js"></script>
 
     <!-- Page Enhancements -->
     <script>
-        // Fade-in transitions
         document.addEventListener("DOMContentLoaded", () => {
             document.body.classList.add("page-loaded");
+            document.getElementById('appMain').style.opacity = 1;
         });
+
+        // Admin Tab Switcher Logic
+        window.showAdminTab = function(tabId) {
+            document.querySelectorAll('.admin-tab-content').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.admin-tab').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById('tab-' + tabId).style.display = 'block';
+            document.querySelector('.admin-tab[data-tab="' + tabId + '"]').classList.add('active');
+
+            // Auto load data for specific tabs
+            if(tabId === 'manageElections' && window.loadElections) window.loadElections(true);
+            if(tabId === 'analytics' && window.loadAnalytics) window.loadAnalytics();
+            if(tabId === 'manageVoters' && window.loadVotersPaginated) window.loadVotersPaginated(1);
+        };
     </script>
 </body>
-
 </html>

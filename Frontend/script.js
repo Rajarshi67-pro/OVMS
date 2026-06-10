@@ -9,8 +9,32 @@
 const NETWORK_STATUS = document.getElementById('networkStatus');
 const authSection = document.getElementById('auth-section');
 const voterSection = document.getElementById('voter-section');
+const adminSection = document.getElementById('admin-section');
 const voterNameSpan = document.getElementById('voterName');
 function getElectionsDiv() { return document.getElementById('elections'); }
+
+// SPA Navigation Helpers
+window.goHome = function() {
+    if(window.auth && window.auth.currentUser) {
+        showVoterSectionFromFirebase(window.auth.currentUser);
+    } else {
+        const raw = localStorage.getItem('backendUser');
+        const lu = localStorage.getItem('localUser');
+        if(raw) showVoterSectionLocal(JSON.parse(raw));
+        else if(lu) showVoterSectionLocal(JSON.parse(lu));
+        else showAuthSection();
+    }
+};
+
+window.goAdmin = function() {
+    authSection.style.display = 'none';
+    voterSection.style.display = 'none';
+    adminSection.style.display = 'block';
+    
+    // Default to elections tab
+    if(window.showAdminTab) window.showAdminTab('manageElections');
+};
+
 
 
 // Ensure an edit modal exists in the DOM and return helper to show it.
@@ -335,20 +359,37 @@ async function tryInitFirebase() {
 tryInitFirebase();
 
 // ---------- UI helpers ----------
+function updateNavbarAuth(user, isAdmin) {
+    const navArea = document.getElementById('navAuthArea');
+    if (!navArea) return;
+    
+    if (user) {
+        let html = `<button class="btn btn-outline" onclick="logout()">Logout</button>`;
+        if (isAdmin) {
+            html = `<button class="btn btn-secondary" onclick="goAdmin()">Admin Panel</button>` + html;
+        }
+        navArea.innerHTML = html;
+    } else {
+        navArea.innerHTML = `<button class="btn btn-primary" onclick="showAuthSection()">Login</button>`;
+    }
+}
+
 function showAuthSection() {
     if (!NETWORK_STATUS) return;
-    authSection.style.display = 'block';
-    voterSection.style.display = 'none';
-    voterNameSpan.textContent = '';
+    if(authSection) authSection.style.display = 'block';
+    if(voterSection) voterSection.style.display = 'none';
+    if(adminSection) adminSection.style.display = 'none';
+    if(voterNameSpan) voterNameSpan.textContent = '';
     const electionsDiv = getElectionsDiv();
     if (electionsDiv) electionsDiv.innerHTML = '';
+    updateNavbarAuth(null, false);
 }
 
 function showVoterSectionLocal(user) {
-    // **FIX 1:** Guard must check for authSection, not network status
     if (!authSection) return; 
 
     authSection.style.display = 'none';
+    if(adminSection) adminSection.style.display = 'none';
     voterSection.style.display = 'block';
     voterNameSpan.textContent = user.name || user.email || 'Voter';
     
@@ -373,7 +414,7 @@ function showVoterSectionLocal(user) {
     }
 
     console.log('[showVoterSectionLocal] showAdmin=' + showAdmin + ', user email=' + (user && user.email) + ', role=' + (user && user.role));
-    updateAdminButtonVisibility(showAdmin);
+    updateNavbarAuth(user, showAdmin);
     
     // Show role badge instantly after login
     const role = (user && user.role) || (showAdmin ? 'admin' : 'user');
@@ -477,10 +518,10 @@ function updateAdminButtonVisibility(isAdmin) {
 }
 
 async function showVoterSectionFromFirebase(user) {
-    // **FIX 1:** This guard MUST check for authSection
     if (!authSection) return; 
 
     authSection.style.display = 'none';
+    if(adminSection) adminSection.style.display = 'none';
     voterSection.style.display = 'block';
     
     try {
@@ -515,7 +556,7 @@ async function showVoterSectionFromFirebase(user) {
             (user.email === OWNER_EMAIL) ||
             (user.email === ADMIN_EMAIL);
 
-        updateAdminButtonVisibility(isAdmin);
+        updateNavbarAuth(user, isAdmin);
         
     } catch (e) {
         // The catch block will no longer run by default
@@ -528,10 +569,7 @@ async function showVoterSectionFromFirebase(user) {
     if (window.loadElections) loadElections();
 }
 
-// navigate to admin page
-window.goAdmin = function goAdmin() {
-    window.location.href = 'admin.html';
-};
+// navigate to admin page (Handled by goAdmin SPA helper above)
 
 // ---------- Local storage helpers (demo/offline mode) ----------
 function getLocalElections() {
@@ -778,9 +816,11 @@ window.loadElections = async function loadElections() {
     const electionsDiv = getElectionsDiv();
     if (electionsDiv) electionsDiv.innerHTML = 'Loading...';
     
-    // **FIX 1: Check if we are on the admin page
-    const isAdminPage = window.location.pathname.includes('admin.html');
+    const isAdminPage = adminSection && adminSection.style.display === 'block';
     const endpoint = isAdminPage ? `${API_BASE}/elections` : `${API_BASE}/elections/active`;
+
+    // Try to load analytics stats in background if on admin page
+    if(isAdminPage && window.loadAnalytics) window.loadAnalytics();
 
     // **FIX: Clear election source cache to force fresh load**
     window.electionSource = {};
@@ -1472,3 +1512,195 @@ async function fetchWithLoader(url, options = {}) {
 }
 
 window.fetchWithLoader = fetchWithLoader;
+
+// ==========================================
+// ADMIN DASHBOARD SPECIFIC FUNCTIONS
+// ==========================================
+
+window.createElection = async function createElection() {
+    const token = localStorage.getItem('backendToken');
+    if (!token) return alert("Not authorized. Please login.");
+
+    const title = document.getElementById('title').value.trim();
+    const description = document.getElementById('desc').value.trim();
+    const startDate = document.getElementById('start').value;
+    const endDate = document.getElementById('end').value;
+
+    if (!title) return alert("Title is required");
+
+    const body = { title, description, startDate, endDate, isActive: true };
+
+    try {
+        const res = await window.fetchWithLoader(`${API_BASE}/elections`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify(body)
+        });
+
+        if (res.ok) {
+            window.showSuccessTick("Election created");
+            if (window.loadElections) window.loadElections();
+        } else {
+            const data = await res.json();
+            alert(data.message || "Failed to create election");
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Network error");
+    }
+};
+
+window.addCandidate = async function addCandidate() {
+    const token = localStorage.getItem('backendToken');
+    if (!token) return alert("Not authorized.");
+
+    const electionId = document.getElementById('elId').value.trim();
+    const name = document.getElementById('cName').value.trim();
+    const party = document.getElementById('party').value.trim();
+
+    if (!electionId || !name) return alert("Election ID and Candidate Name are required");
+
+    try {
+        const res = await window.fetchWithLoader(`${API_BASE}/elections/${electionId}/candidates`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ name, party })
+        });
+
+        if (res.ok) {
+            window.showSuccessTick("Candidate added");
+            if (window.loadElections) window.loadElections();
+        } else {
+            const data = await res.json();
+            alert(data.message || "Failed to add candidate");
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Network error");
+    }
+};
+
+window.loadAnalytics = async function loadAnalytics() {
+    const token = localStorage.getItem('backendToken');
+    if (!token) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/admin/analytics`, {
+            headers: { "Authorization": "Bearer " + token }
+        });
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+        const box = document.getElementById("analyticsBox");
+        if(box) {
+            box.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-val">${data.voterCount || 0}</div>
+                    <div class="stat-lbl">Total Voters</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-val">${data.adminCount || 0}</div>
+                    <div class="stat-lbl">Total Admins</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-val">${data.voteCount || 0}</div>
+                    <div class="stat-lbl">Total Votes Cast</div>
+                </div>
+            `;
+        }
+    } catch (err) {
+        console.error(err);
+    }
+};
+
+window.loadVotersPaginated = async function loadVotersPaginated(page) {
+    const token = localStorage.getItem('backendToken');
+    if (!token) return;
+
+    try {
+        const res = await window.fetchWithLoader(`${API_BASE}/admin/voters/paginated?page=${page}&limit=5`, {
+            headers: { "Authorization": "Bearer " + token }
+        });
+        
+        if (!res.ok) {
+            const data = await res.json();
+            return alert(data.message || "Failed to load voters");
+        }
+
+        const data = await res.json();
+        let html = `<div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+                        <strong>Page ${data.page} of ${data.totalPages}</strong>
+                        <div>`;
+        if (data.page > 1) html += `<button onclick="loadVotersPaginated(${data.page - 1})" class="btn btn-outline btn-sm">Prev</button> `;
+        if (data.page < data.totalPages) html += `<button onclick="loadVotersPaginated(${data.page + 1})" class="btn btn-outline btn-sm">Next</button>`;
+        html += `</div></div><ul>`;
+        
+        data.voters.forEach(v => {
+            html += `
+                <li>
+                    <div>
+                        <strong>${v.name}</strong> <span class="muted">(${v.email})</span>
+                    </div>
+                    <button onclick="deleteVoter('${v._id}')" class="btn btn-danger btn-sm">Delete</button>
+                </li>
+            `;
+        });
+        html += "</ul>";
+
+        document.getElementById("votersBox").innerHTML = html;
+    } catch (err) {
+        console.error(err);
+    }
+};
+
+window.deleteVoter = async function deleteVoter(id) {
+    if (!confirm("Are you sure you want to delete this voter?")) return;
+    const token = localStorage.getItem('backendToken');
+    if (!token) return;
+
+    try {
+        const res = await window.fetchWithLoader(`${API_BASE}/admin/voter/${id}`, {
+            method: "DELETE",
+            headers: { "Authorization": "Bearer " + token }
+        });
+        const data = await res.json();
+        if (res.ok) {
+            window.showSuccessTick("Voter Deleted");
+            loadVotersPaginated(1);
+        } else {
+            alert(data.message || "Failed to delete");
+        }
+    } catch (err) {
+        console.error(err);
+    }
+};
+
+window.deleteElectionById = async function deleteElectionById() {
+    const id = document.getElementById('deleteElectionId').value.trim();
+    if (!id) return alert("Enter an election ID");
+
+    const token = localStorage.getItem('backendToken');
+    if (!token) return alert("Not authorized");
+    
+    if (!confirm("Are you sure you want to delete this election? This is permanent.")) return;
+
+    try {
+        const res = await window.fetchWithLoader(`${API_BASE}/elections/${id}`, {
+            method: "DELETE",
+            headers: { "Authorization": "Bearer " + token }
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            window.showSuccessTick("Election Deleted");
+            document.getElementById('deleteElectionId').value = '';
+            if (window.loadElections) window.loadElections();
+        } else {
+            alert(data.message || "Delete failed");
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Network error");
+    }
+};
