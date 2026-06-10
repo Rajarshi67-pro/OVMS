@@ -231,8 +231,11 @@ async function ensureFirestoreNetwork() {
 // backend API base
 // Smart detection: uses localhost in dev, Cloud Run in production
 const API_BASE = (function() {
-    // Always use localhost for local development
-    return 'http://localhost:5002/api';
+    // Use localhost for local development, otherwise use Render URL
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:5002/api';
+    }
+    return 'https://ovms-yz85.onrender.com/api';
 })();
 
 const firebaseConfig = {
