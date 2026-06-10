@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Vote — Online Voting Management System</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="voting.css">
+</head>
+
+<body>
+    <div class="page">
+        <header class="top">
+            <h1>Cast Your Vote</h1>
+            <div class="user-area">
+                <a class="back" href="index.html">Home</a>
+            </div>
+        </header>
+
+        <main class="content">
+            <div id="networkStatus" class="network"></div>
+
+            <section class="controls">
+                <button class="btn primary" onclick="loadElections()">Show Active Elections</button>
+            </section>
+
+            <section id="elections" class="elections">
+                <!-- elections will be rendered here by script.js -->
+            </section>
+        </main>
+
+        <div id="toast" class="toast" aria-live="polite"></div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+    <script>
+        // Voting page is public: any eligible user should be able to view and vote.
+        // Admin-only controls remain hidden unless the user is admin (handled by script.js).
+
+        // connect toast to vote events emitted by script.js
+        function showToast(message, type = 'success') {
+            const t = document.getElementById('toast');
+            t.textContent = message;
+            t.className = 'toast show ' + type;
+            clearTimeout(t._hideTimer);
+            t._hideTimer = setTimeout(() => { t.className = 'toast'; }, 3500);
+        }
+
+        window.addEventListener('vote:success', (e) => {
+            const msg = (e && e.detail && e.detail.message) ? e.detail.message : 'Vote succeeded';
+            showToast(msg, 'success');
+        });
+
+        window.addEventListener('vote:error', (e) => {
+            const msg = (e && e.detail && e.detail.message) ? e.detail.message : 'Vote failed';
+            showToast(msg, 'error');
+        });
+
+        // mirror network status from script.js
+        function updateNetworkMirror() {
+            const el = document.getElementById('networkStatus');
+            el.textContent = navigator.onLine ? 'Online' : 'Offline — demo mode';
+            el.className = navigator.onLine ? 'network online' : 'network offline';
+        }
+        window.addEventListener('online', updateNetworkMirror);
+        window.addEventListener('offline', updateNetworkMirror);
+        updateNetworkMirror();
+
+        // show voter name if available
+        const nameSpan = document.getElementById('voterNameHeader');
+        // script.js will update #voterName in main page; mirror from localUser if present
+        const lu = JSON.parse(localStorage.getItem('localUser') || 'null');
+        if (lu && lu.name) nameSpan.textContent = lu.name;
+        // also listen for auth state change if script.js emits 'auth:changed' (not currently implemented)
+
+        // If an electionId param is present, load that single election; otherwise leave control to user
+        const params = new URLSearchParams(location.search);
+        const electionId = params.get('electionId');
+        function whenAvailable(name, cb) {
+            if (window[name]) return cb();
+            const t = setInterval(() => { if (window[name]) { clearInterval(t); cb(); } }, 50);
+            // timeout after a few seconds
+            setTimeout(() => clearInterval(t), 5000);
+        }
+        if (electionId) {
+            whenAvailable('loadElectionById', () => { try { window.loadElectionById(electionId); } catch (e) { console.error(e); } });
+        } else {
+            // if no param, optionally auto-load all elections
+            whenAvailable('loadElections', () => { /* leave it to button or auto-load if desired */ });
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Bharat Vote 🇮🇳</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Your enhanced CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container fade">
+
+        <h1>Bharat Vote 🇮🇳</h1>
+
+        <!-- Status labels -->
+        <div id="networkStatus"></div>
+        <div id="backendStatus"></div>
+
+        <!-- AUTH SECTION -->
+        <div id="auth-section" class="fade">
+            <h2>Login</h2>
+
+            <input type="email" id="loginEmail" placeholder="Email">
+            <input type="password" id="loginPassword" placeholder="Password">
+
+            <button class="primary-action" onclick="login()">Login</button>
+
+            <button id="googleSignInBtn" onclick="googleSignIn()">
+                <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="20"> Sign in with Google
+            </button>
+
+            <p style="margin-top: 10px; font-weight: 600;">Don't have an account?</p>
+
+            <input type="text" id="regName" placeholder="Full Name">
+            <input type="email" id="regEmail" placeholder="Email">
+            <input type="password" id="regPassword" placeholder="Password">
+
+            <button class="primary-action" onclick="register()">Register</button>
+        </div>
+
+        <!-- VOTER SECTION -->
+        <div id="voter-section" class="fade" style="display:none;">
+            <h2>
+                Welcome, <span id="voterName"></span> 👋
+            </h2>
+
+            <div style="margin-top: 10px;">
+                <button id="adminBtn" onclick="goAdmin()" class="admin-panel-btn primary-action">
+                    Admin Dashboard
+                </button>
+        
+            </div>
+
+            <button class="primary-action" onclick="loadElections()">Show Active Elections</button>
+
+            <div id="elections"></div>
+
+            <button class="admin-btn" onclick="logout()">Logout</button>
+        </div>
+
+    </div>
+
+    <!-- Main App Script -->
+    <script type="module" src="script.js"></script>
+
+    <!-- Page Enhancements -->
+    <script>
+        // Fade-in transitions
+        document.addEventListener("DOMContentLoaded", () => {
+            document.body.classList.add("page-loaded");
+        });
+    </script>
+</body>
+
+</html>

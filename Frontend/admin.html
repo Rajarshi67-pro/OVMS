@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bharat Vote - Admin Panel</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Admin Dashboard ⚙️</h1>
+
+        <div style="margin:10px 0; display:flex; align-items:center; gap:8px;">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input id="homeSwitch" type="checkbox" onchange="goHomeSwitchChanged(this)"
+                    style="width:40px;height:20px;" />
+                <span>Go to Home</span>
+            </label>
+        </div>
+
+        <div id="admin-login-box">
+            <input type="email" id="adminEmail" placeholder="Admin Email" value="rajarshighs7@gmail.com">
+            <input type="password" id="adminPassword" placeholder="Password">
+            <button onclick="adminLogin()">Login as Admin</button>
+        </div>
+
+        <div id="admin-section" style="display:none;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <h2>Welcome Admin</h2>
+                <div>
+                    <button onclick="goHome()" class="btn">Back to Home</button>
+                    <button onclick="loadElections()" class="btn">Show Active Elections</button>
+                    <button onclick="logout()" class="btn">Logout</button>
+                </div>
+            </div>
+
+            <h3>Create New Election</h3>
+            <input id="title" placeholder="Election Title">
+            <input id="desc" placeholder="Description">
+            <label>Start: <input id="start" type="date"></label>
+            <label>End: <input id="end" type="date"></label>
+            <button onclick="createElection()">Create Election</button>
+
+            <hr>
+            <h3>Add Candidate</h3>
+            <input id="elId" placeholder="Election ID">
+            <input id="cName" placeholder="Candidate Name">
+            <input id="party" placeholder="Party">
+            <button onclick="addCandidate()">Add Candidate</button>
+
+            <hr>
+            <h3>Admin Analytics</h3>
+            <button onclick="loadAnalytics()">Load Analytics</button>
+            <div id="analyticsBox"
+                style="margin-top:10px; padding:10px; border:1px solid #ccc; border-radius:8px;"></div>
+
+            <hr>
+            <h3>Manage Voters</h3>
+            <button onclick="loadVotersPaginated(1)">Load Voters (Paginated)</button>
+            <div id="votersBox"
+                style="margin-top:10px; padding:10px; border:1px solid #ccc; border-radius:8px;"></div>
+
+            <hr>
+            <h3>Delete Election</h3>
+            <input id="deleteElectionId" placeholder="Election ID to Delete">
+            <button onclick="deleteElectionById()">Delete Election</button>
+
+            <hr>
+            <h3>Active Elections</h3>
+            <div id="elections"></div>
+        </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            document.body.classList.add("page-loaded");
+        });
+        const API_BASE = 'http://localhost:5002/api';
+        // Add BOTH emails for consistency with script.js
+        const ADMIN_EMAIL = 'rajarshighs7@gmail.com';
+        const OWNER_EMAIL = 'rajarshighs1@gmail.com';
+
+        // ------------------------
+        // HELPER FUNCTIONS (Missing)
+        // ------------------------
+        function showError(msg) {
+            alert(`Error: ${msg}`);
+        }
+
+        function showSuccess(msg) {
+            // Use the success tick function from script.js
+            if (window.showSuccessTick) {
+                window.showSuccessTick(msg);
+            } else {
+                alert(msg);
+            }
+        }
+
+        // ------------------------
+        // NAVIGATION
+        // ------------------------
+        function goHome() {
+            // Set a flag so index.html knows to load elections
+            localStorage.setItem('ovmsNavigate', 'showElections');
+            if (window.showLoader) showLoader({ chakra: true });
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 150);
+        }
+
+        window.goHomeSwitchChanged = function (el) {
+            if (el.checked) {
+                localStorage.setItem('ovmsNavigate', 'showElections');
+                if (window.showLoader) showLoader({ chakra: true });
+                setTimeout(() => window.location.href = 'index.html', 150);
+            }
+        };
+
+        // ------------------------
+        // AUTH GUARD
+        // ------------------------
+        window.addEventListener('load', () => {
+
+            const token = localStorage.getItem('backendToken');
+            const raw = localStorage.getItem('backendUser');// Stay on login
+
+            try {
+                const user = JSON.parse(raw);
+
+                // **FIXED:** This check now matches the logic in script.js
+                // It checks for the database role OR the hard-coded emails.
+                const isAdmin = user.role === 'admin' || user.email === OWNER_EMAIL || user.email === ADMIN_EMAIL;
+
+                if (!isAdmin) {
+                    showError("Unauthorized! Redirecting...");
+                    if (window.showLoader) showLoader({ chakra: true });
+                    return setTimeout(() => window.location.href = "index.html", 800);
+                }
+                // User is admin, show the panel
+                showAdminSection();
+            } catch (e) {
+                // Invalid JSON, stay on login
+            }
+        });
+
+        function showAdminSection() {
+            document.getElementById('admin-login-box').style.display = 'none';
+            document.getElementById('admin-section').style.display = 'block';
+            // refresh elections after admin loads
+            if (window.loadElections) {
+                setTimeout(() => window.loadElections(), 200);
+            }
+        }
+
+        // ------------------------
+        // ADMIN LOGIN
+        // ------------------------
+        async function adminLogin() {
+            const email = document.getElementById('adminEmail').value.trim();
+            const password = document.getElementById('adminPassword').value.trim();
+            if (!email || !password) return showError("Enter admin credentials");
+
+            try {
+                const res = await window.fetchWithLoader(`${API_BASE}/auth/login`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await res.json();
+
+                if (data.token && data.user && (data.user.role === "admin" || data.user.email === OWNER_EMAIL || data.user.email === ADMIN_EMAIL)) {
+                    localStorage.setItem('backendToken', data.token);
+                    localStorage.setItem('backendUser', JSON.stringify(data.user));
+                    showSuccess("Admin Logged In");
+                    showAdminSection();
+                } else {
+                    showError(data.message || "Invalid admin credentials");
+                }
+            } catch (err) {
+                console.error(err);
+                showError("Network Error");
+            }
+        }
+
+        // ------------------------
+        // CREATE ELECTION
+        // ------------------------
+        async function createElection() {
+            const token = localStorage.getItem('backendToken');
+            if (!token) return showError("Not authorized. Please login.");
+
+            const title = document.getElementById('title').value.trim();
+            const description = document.getElementById('desc').value.trim();
+            const startDate = document.getElementById('start').value;
+            const endDate = document.getElementById('end').value;
+
+            if (!title) return showError("Title is required");
+
+            const body = { title, description, startDate, endDate, isActive: true };
+
+            try {
+                const res = await window.fetchWithLoader(`${API_BASE}/elections`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify(body)
+                });
+
+                if (res.ok) {
+                    showSuccess("Election created successfully");
+                    if (window.loadElections) window.loadElections(); // Refresh list
+                } else {
+                    const data = await res.json();
+                    showError(data.message || "Failed to create election");
+                }
+            } catch (err) {
+                console.error(err);
+                showError("Network error");
+            }
+        }
+
+        // ------------------------
+        // ADD CANDIDATE
+        // ------------------------
+        async function addCandidate() {
+            const token = localStorage.getItem('backendToken');
+            if (!token) return showError("Not authorized. Please login.");
+
+            const electionId = document.getElementById('elId').value.trim();
+            const name = document.getElementById('cName').value.trim();
+            const party = document.getElementById('party').value.trim();
+
+            if (!electionId || !name) return showError("Election ID and Candidate Name are required");
+
+            try {
+                const res = await window.fetchWithLoader(`${API_BASE}/elections/${electionId}/candidates`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ name, party })
+                });
+
+                if (res.ok) {
+                    showSuccess("Candidate added successfully");
+                    if (window.loadElections) window.loadElections(); // Refresh list
+                } else {
+                    const data = await res.json();
+                    showError(data.message || "Failed to add candidate");
+                }
+            } catch (err) {
+                console.error(err);
+                showError("Network error");
+            }
+        }
+        
+        // ------------------------
+        // ANALYTICS
+        // ------------------------
+        async function loadAnalytics() {
+            const token = localStorage.getItem('backendToken');
+            if (!token) return showError("Not authorized");
+
+            try {
+                const res = await window.fetchWithLoader(`${API_BASE}/admin/analytics`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+
+                if (!res.ok) {
+                    const data = await res.json();
+                    return showError(data.message || "Failed to load analytics");
+                }
+
+                const data = await res.json();
+                document.getElementById("analyticsBox").innerHTML = `
+                    <p><strong>Total Voters:</strong> ${data.voterCount || 0}</p>
+                    <p><strong>Total Admins:</strong> ${data.adminCount || 0}</p>
+                    <p><strong>Total Votes Cast:</strong> ${data.voteCount || 0}</p>
+                `;
+                showSuccess("Analytics Loaded");
+            } catch (err) {
+                console.error(err);
+                showError("Network error");
+            }
+        }
+
+        // ------------------------
+        // PAGINATED VOTERS
+        // ------------------------
+        async function loadVotersPaginated(page) {
+            const token = localStorage.getItem('backendToken');
+            if (!token) return showError("Not authorized");
+
+            try {
+                const res = await window.fetchWithLoader(`${API_BASE}/admin/voters/paginated?page=${page}&limit=5`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                
+                if (!res.ok) {
+                    const data = await res.json();
+                    return showError(data.message || "Failed to load voters");
+                }
+
+                const data = await res.json();
+                let html = `<h4>Page ${data.page} of ${data.totalPages}</h4><ul>`;
+                data.voters.forEach(v => {
+                    html += `
+                        <li>
+                            ${v.name} (${v.email})
+                            <button onclick="deleteVoter('${v._id}')" class="btn">Delete</button>
+                        </li>
+                    `;
+                });
+                html += "</ul>";
+
+                if (data.page > 1)
+                    html += `<button onclick="loadVotersPaginated(${data.page - 1})" class="btn">Prev</button>`;
+                if (data.page < data.totalPages)
+                    html += `<button onclick="loadVotersPaginated(${data.page + 1})" class="btn">Next</button>`;
+
+                document.getElementById("votersBox").innerHTML = html;
+            } catch (err) {
+                console.error(err);
+                showError("Network error");
+            }
+        }
+
+        // ------------------------
+        // DELETE VOTER
+        // ------------------------
+        async function deleteVoter(id) {
+            if (!confirm("Are you sure you want to delete this voter?")) return;
+            
+            const token = localStorage.getItem('backendToken');
+            if (!token) return showError("Not authorized");
+
+            try {
+                const res = await window.fetchWithLoader(`${API_BASE}/admin/voter/${id}`, {
+                    method: "DELETE",
+                    headers: { "Authorization": "Bearer " + token }
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    showSuccess(data.message || "Deleted");
+                    loadVotersPaginated(1); // Refresh
+                } else {
+                    showError(data.message || "Failed to delete");
+                }
+            } catch (err) {
+                console.error(err);
+                showError("Network error");
+            }
+        }
+
+        // ------------------------
+        // DELETE ELECTION
+        // ------------------------
+        async function deleteElectionById() {
+            const id = document.getElementById('deleteElectionId').value.trim();
+            if (!id) return showError("Enter an election ID");
+
+            const token = localStorage.getItem('backendToken');
+            if (!token) return showError("Not authorized");
+            
+            if (!confirm("Are you sure you want to delete this election? This is permanent.")) return;
+
+            try {
+                const res = await window.fetchWithLoader(`${API_BASE}/elections/${id}`, {
+                    method: "DELETE",
+                    headers: { "Authorization": "Bearer " + token }
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    showSuccess(data.message || "Election Deleted");
+                    if (window.loadElections) window.loadElections(); // Refresh
+                } else {
+                    showError(data.message || "Delete failed");
+                }
+            } catch (err) {
+                console.error(err);
+                showError("Network error");
+            }
+        }
+
+        // ------------------------
+        // LOGOUT
+        // ------------------------
+        window.logout = function () {
+            localStorage.removeItem('backendToken');
+            localStorage.removeItem('backendUser');
+            if (window.showLoader) showLoader({ chakra: true });
+            setTimeout(() => window.location.href = "index.html", 300);
+        };
+    </script>
+
+</body>
+</html>
