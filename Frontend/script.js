@@ -681,14 +681,21 @@ window.login = async function login() {
 };
 
 window.logout = async function logout() {
+    localStorage.removeItem('localUser');
+    localStorage.removeItem('backendToken');
+    localStorage.removeItem('backendUser');
+    sessionStorage.removeItem('hasRefreshedAfterLogin');
+    try { hideRoleBadge(); } catch (e) { }
+
     if (firebaseAvailable && authModule && auth) {
-        try { await authModule.signOut(auth); alert('Logged out.'); } catch (err) { console.error(err); alert('Logout error: ' + (err.message || err)); }
+        try { 
+            await authModule.signOut(auth); 
+            location.reload(); 
+        } catch (err) { 
+            console.error(err); 
+            alert('Logout error: ' + (err.message || err)); 
+        }
     } else {
-        localStorage.removeItem('localUser');
-        localStorage.removeItem('backendToken');
-        localStorage.removeItem('backendUser');
-        // hide role badge on logout
-        try { hideRoleBadge(); } catch (e) { }
         location.reload();
     }
 };
