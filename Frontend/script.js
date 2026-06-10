@@ -11,7 +11,12 @@ const authSection = document.getElementById('auth-section');
 const voterSection = document.getElementById('voter-section');
 const adminSection = document.getElementById('admin-section');
 const voterNameSpan = document.getElementById('voterName');
-function getElectionsDiv() { return document.getElementById('elections'); }
+function getElectionsDiv() { 
+    if (adminSection && adminSection.style.display === 'block') {
+        return document.getElementById('adminElectionsList');
+    }
+    return document.getElementById('elections'); 
+}
 
 // SPA Navigation Helpers
 window.goHome = function() {
@@ -559,10 +564,20 @@ async function showVoterSectionFromFirebase(user) {
         updateNavbarAuth(user, isAdmin);
         
     } catch (e) {
-        // The catch block will no longer run by default
-        console.error("Error in showVoterSectionFromFirebase:", e); // Added log
-        voterNameSpan.textContent = user.email || 'Voter';
-        // DO NOT hide the button here - let updateAdminButtonVisibility control it
+        console.error("Error in showVoterSectionFromFirebase:", e);
+        if(voterNameSpan) voterNameSpan.textContent = user.email || 'Voter';
+        
+        let persistedBackendUser = null;
+        try { 
+            const raw = localStorage.getItem('backendUser'); 
+            if (raw) persistedBackendUser = JSON.parse(raw); 
+        } catch (err) { /* ignore */ }
+
+        const isAdmin = (persistedBackendUser && persistedBackendUser.role === 'admin') ||
+            (user.email === OWNER_EMAIL) ||
+            (user.email === ADMIN_EMAIL);
+
+        updateNavbarAuth(user, isAdmin);
     }
 
     // Load elections after showing the section
